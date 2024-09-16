@@ -29,6 +29,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import random
 from weakref import finalize
 
 import selenium.webdriver.chrome.service
@@ -125,6 +126,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         debug=False,
         no_sandbox=True,
         user_multi_procs: bool = False,
+        use_proxy: bool = True,
+        proxy_path: str = None,
+        unique_fingerprint: bool = False,
+        print_options_args: bool = False,
         **kw,
     ):
         """
@@ -242,6 +247,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             ensures not all processes are trying to modify a binary which is in use by another.
             for this to work. YOU MUST HAVE AT LEAST 1 UNDETECTED_CHROMEDRIVER BINARY IN YOUR ROAMING DATA FOLDER.
             this requirement can be easily satisfied, by just running this program "normal" and close/kill it.
+
+        user_multi_procs:
+            Do we use a proxy server, defined by the extension proxy_auth_extension?
 
 
         """
@@ -407,9 +415,22 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                                "therefore, we are assuming it is chrome 108 or higher")
                 options.add_argument("--headless=new")
 
-        options.add_argument("--window-size=1920,1080")
+
+        if unique_fingerprint:
+            ua, width, height = self.get_unique_fingerprint_properties()
+            options.add_argument(f"--user-agent={ua}")
+            options.add_argument(f"--window-size={width},{height}")
+        else:
+            options.add_argument("--window-size=1920,1080")
+
         options.add_argument("--start-maximized")
         options.add_argument("--no-sandbox")
+
+        if use_proxy:
+            options.add_argument(f"--load-extension={proxy_path}")
+
+        if print_options_args: print(options.arguments)
+
         # fixes "could not connect to chrome" error when running
         # on linux using privileged user like root (which i don't recommend)
 
@@ -487,6 +508,43 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if headless or getattr(options, 'headless', None):
             self._configure_headless()
+
+
+    def get_unique_fingerprint_properties(self) -> (str,str,str):
+        user_agents = [
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.146 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36"
+        ]
+        ua = random.choice(user_agents)
+
+        window_widths = [
+            "1920",
+            "1512",
+            "1400",
+            "1450",
+            "1491",
+            "1462",
+        ]
+        window_width = random.choice(window_widths)
+
+        window_heights = [
+            "874",
+            "1080",
+            "800",
+            "850",
+            "820",
+            "833",
+        ]
+        window_height = random.choice(window_heights)
+        return ua, window_width, window_height
 
     def _configure_headless(self):
         orig_get = self.get
