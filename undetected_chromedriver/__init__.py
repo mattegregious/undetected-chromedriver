@@ -411,8 +411,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 elif self.patcher.version_main >= 108:
                     options.add_argument("--headless=new")
             except:
-                logger.warning("could not detect version_main."
-                               "therefore, we are assuming it is chrome 108 or higher")
+                # logger.warning("could not detect version_main."
+                #                "therefore, we are assuming it is chrome 108 or higher")
                 options.add_argument("--headless=new")
 
 
